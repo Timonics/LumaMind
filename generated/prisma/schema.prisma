@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int            @id @default(autoincrement())
+  name      String
+  email     String         @unique
+  password  String
+  phone     String
+  role      Role           @default(USER)
+  resources UserResource[]
+  progress  Progress[]
+  reviews   Review[]
+  tags      Tag[]
+  goals     Goal[]
+  createdAt DateTime       @default(now())
+}
+
+model Resource {
+  id        Int            @id @default(autoincrement())
+  title     String
+  url       String
+  type      ResourceType   @default(ARTICLE)
+  content   String?
+  users     UserResource[]
+  progress  Progress[]
+  reviews   Review[]
+  tags      Tag[]
+  createdAt DateTime       @default(now())
+  goals     Goal[] // many-to-many through separate logic
+}
+
+model UserResource {
+  userId      Int
+  resourceId  Int
+  user        User      @relation(fields: [userId], references: [id])
+  resource    Resource  @relation(fields: [resourceId], references: [id])
+  startedAt   DateTime?
+  completedAt DateTime?
+  notes       String?
+
+  @@id([userId, resourceId])
+}
+
+model Progress {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  resourceId   Int
+  user         User      @relation(fields: [userId], references: [id])
+  resource     Resource  @relation(fields: [resourceId], references: [id])
+  completion   Int       @default(0) // 0-100%
+  lastReviewed DateTime?
+  confidence   Int?
+  notes        String?
+
+  @@unique([userId, resourceId])
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  resourceId  Int
+  user        User     @relation(fields: [userId], references: [id])
+  resource    Resource @relation(fields: [resourceId], references: [id])
+  dueDate     DateTime
+  interval    Int
+  easeFactor  Float    @default(2.5)
+  repetitions Int      @default(0)
+  lastScore   Int?
+
+  @@unique([userId, resourceId])
+}
+
+model Tag {
+  id        Int        @id @default(autoincrement())
+  name      String
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  resources Resource[]
+}
+
+model Goal {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  targetDate  DateTime?
+  isCompleted Boolean    @default(false)
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+  resources   Resource[] // many-to-many relation
+}
+
+enum ResourceType {
+  ARTICLE
+  VIDEO
+  COURSE
+  PDF
+}
+
+enum Role {
+  ADMIN
+  USER
+}
