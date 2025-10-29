@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Resource } from './interface/resource.interface';
+import { Resource, ResourceType } from './interface/resource.interface';
 import { Prisma } from 'generated/prisma';
 import { RedisService } from 'src/redis/redis.service';
 
@@ -14,27 +14,54 @@ export class ResourceService {
     private readonly prisma: PrismaService,
   ) {}
 
-  getCachedResourceKey(id: number): string {
+  private getCachedResourceKey(id: number): string {
     return `resource:${id}`;
   }
 
-  getAllCachedResourceKey(): string {
-    return `resource:all`;
+  private getAllCachedResourceKey(
+    page: number,
+    limit: number,
+    sortBy: string,
+    sortOrder: string,
+    type?: ResourceType
+  ) {
+    return `resources:page=${page}:limit=${limit}:sortBy=${sortBy}:sortOrder=${sortOrder}:type=${type}`;
   }
 
-  async findAll(): Promise<Resource[]> {
-    const cachedResourcesKey = this.getAllCachedResourceKey();
+  async findAll(
+    page = 1,
+    limit = 10,
+    sortBy: keyof Resource = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    type?: ResourceType,
+  ): Promise<Resource[]> {
+    const offset = (page - 1) * limit;
+
+    const cachedResourcesKey = this.getAllCachedResourceKey(
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      type
+    );
 
     const cachedResources =
       await this.redisClient.getJsonArr<Resource>(cachedResourcesKey);
 
     if (cachedResources) return cachedResources;
 
-    const resources = await this.prisma.resource.findMany();
+    const resources = await this.prisma.resource.findMany({
+      where: { type: type ? type : undefined },
+      skip: offset,
+      take: limit,
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+    });
 
-    if (resources) {
+    if (resources.length > 0) {
       this.redisClient.setJson<Resource>(
-        this.getAllCachedResourceKey(),
+        this.getAllCachedResourceKey(page, limit, sortBy, sortOrder, type),
         resources,
         this.resourceTTL,
       );

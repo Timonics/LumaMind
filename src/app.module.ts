@@ -7,9 +7,16 @@ import { ProgressModule } from './progress/progress.module';
 import { ReviewModule } from './review/review.module';
 import { RedisModule } from './redis/redis.module';
 import { UserResourceModule } from './user_resource/user_resource.module';
+import { ConfigModule } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
+import { REDIS_CLIENT } from './constants/redis.constants';
+import { RedisClient } from 'bullmq';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     PrismaModule,
     UserModule,
     AuthModule,
@@ -17,7 +24,12 @@ import { UserResourceModule } from './user_resource/user_resource.module';
     ProgressModule,
     ReviewModule,
     RedisModule,
-    UserResourceModule
+    UserResourceModule,
+    BullModule.forRootAsync({
+      inject: [REDIS_CLIENT],
+      imports: [RedisModule],
+      useFactory: (connection: RedisClient) => ({ connection }),
+    }),
   ],
 })
 export class AppModule {}

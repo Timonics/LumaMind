@@ -7,5 +7,6 @@ import { RedisModule } from 'src/redis/redis.module';
   imports: [RedisModule],
   controllers: [ResourceController],
   providers: [ResourceService],
+  exports: [ResourceService],
 })
 export class ResourceModule {}
