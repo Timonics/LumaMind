@@ -1,27 +1,21 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import { Queue } from 'bullmq';
+import { QueueProducerFactory } from './factories/queue-producer.factory';
+import { QUEUE_NAMES } from 'src/constants/queue.constants';
 
 @Injectable()
 export class QueueService {
-  constructor(
-    @InjectQueue('due-reviews') private readonly reviewsQueue: Queue,
-    @InjectQueue('email-queue') private readonly emailQueue: Queue,
-  ) {}
+  constructor(private readonly queueProducer: QueueProducerFactory) {}
 
-  async findDueReviews(userId: number, resourceId: number, dueDate: Date) {
-    await this.reviewsQueue.add(
+  async findDueReviews(queueData: {
+    userId: number;
+    resourceId: number;
+    dueDate: Date;
+  }) {
+    await this.queueProducer.add(
+      QUEUE_NAMES.DUE_REVIEWS,
       'check-reviews',
-      {
-        userId,
-        resourceId,
-        dueDate,
-      },
-      { delay: dueDate.getTime() - Date.now() },
+      queueData,
+      { delay: queueData.dueDate.getTime() - Date.now() },
     );
-  }
-
-  async sendEmail() {
-    await this.emailQueue.add('send-email', {});
   }
 }

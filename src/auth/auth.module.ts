@@ -8,6 +8,7 @@ import { UserService } from 'src/users/user.service';
 import { LocalStrategy } from './strategy/local.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { RedisModule } from 'src/redis/redis.module';
+import { UserRepository } from 'src/users/user.repository';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { RedisModule } from 'src/redis/redis.module';
     }),
     RedisModule
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, UserService],
+  providers: [AuthService, LocalStrategy, JwtStrategy],
   exports: [AuthService],
   controllers: [AuthController],
 })

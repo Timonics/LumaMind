@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserService } from 'src/users/user.service';
 import { compareSync, hashSync } from 'bcrypt';
 import { User } from 'src/users/interfaces/user.interface';
 import { Prisma } from 'generated/prisma';
+import { UserRepository } from 'src/users/user.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userService: UserService,
+    private readonly userRepo: UserRepository,
     private readonly jwtService: JwtService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<Omit<User, 'password'> | null> {
-    const user = await this.userService.findOneByEmail(email);
+    const user = await this.userRepo.findByEmail(email);
     if (!user) {
       throw new Error('User does not exist');
     }
@@ -33,7 +33,7 @@ export class AuthService {
 
   async register(user: Prisma.UserCreateInput): Promise<{ access_token: string }> {
     const { email, password } = user;
-    const userExists = await this.userService.findOneByEmail(email);
+    const userExists = await this.userRepo.findByEmail(email);
     if (userExists) {
       throw new Error('User already Exists');
     }
@@ -42,7 +42,7 @@ export class AuthService {
       ...user,
       password: hashedPassword,
     };
-    await this.userService.create(newUser);
+    await this.userRepo.create(newUser);
     return this.login(newUser);
   }
 }

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { User } from './interfaces/user.interface';
 import { Prisma } from 'generated/prisma';
 import { RedisService } from 'src/redis/redis.service';
+import { UserRepository } from './user.repository';
 
 @Injectable()
 export class UserService {
@@ -10,7 +10,7 @@ export class UserService {
   private readonly usersTTL = 3600;
 
   constructor(
-    private prisma: PrismaService,
+    private userRepo: UserRepository,
     private readonly redisClient: RedisService,
   ) {}
 
@@ -24,7 +24,7 @@ export class UserService {
 
     if (cachedUsers) return cachedUsers;
 
-    const users = await this.prisma.user.findMany();
+    const users = await this.userRepo.findAll();
 
     if (users) {
       await this.redisClient.setJson<User>(
@@ -44,11 +44,7 @@ export class UserService {
 
     if (cachedUser) return cachedUser;
 
-    const user = await this.prisma.user.findUnique({
-      where: {
-        id,
-      },
-    });
+    const user = await this.userRepo.findOne(id);
 
     if (user)
       this.redisClient.setJson<User>(
@@ -60,30 +56,8 @@ export class UserService {
     return user;
   }
 
-  async findOneByEmail(email: string): Promise<User | null> {
-    return await this.prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-  }
-
-  async findOneByEmailAndId(email: string, id: number): Promise<User | null> {
-    return await this.prisma.user.findFirst({
-      where: {
-        id,
-        email,
-      },
-    });
-  }
-
   async create(userData: Prisma.UserCreateInput): Promise<User> {
-    const createdUser = await this.prisma.user.create({
-      data: {
-        ...userData,
-        role: 'USER',
-      },
-    });
+    const createdUser = await this.userRepo.create(userData);
 
     const cacheKey = this.getCachedKey(createdUser.id);
     await this.redisClient.setJson(cacheKey, createdUser, this.usersTTL);
@@ -92,10 +66,6 @@ export class UserService {
   }
 
   async delete(id: number) {
-    return await this.prisma.user.delete({
-      where: {
-        id,
-      },
-    });
+    return this.userRepo.delete(id);
   }
 }

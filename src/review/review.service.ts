@@ -10,7 +10,11 @@ export class ReviewService {
     private readonly queueService: QueueService,
   ) {}
 
-  async createReviewIfNotExist(userId: number, resourceId: number, score: number) {
+  async createReviewIfNotExist(
+    userId: number,
+    resourceId: number,
+    score: number,
+  ) {
     const existingReview = await this.prismaService.review.findUnique({
       where: {
         userId_resourceId: {
@@ -35,7 +39,11 @@ export class ReviewService {
       },
     });
 
-    await this.queueService.findDueReviews(userId, resourceId, review.dueDate);
+    await this.queueService.findDueReviews({
+      userId,
+      resourceId,
+      dueDate: review.dueDate,
+    });
 
     return review;
   }
@@ -88,11 +96,11 @@ export class ReviewService {
       },
     });
 
-    await this.queueService.findDueReviews(
+    await this.queueService.findDueReviews({
       userId,
       resourceId,
-      updatedReview.dueDate,
-    );
+      dueDate: updatedReview.dueDate,
+    });
 
     return updatedReview;
   }

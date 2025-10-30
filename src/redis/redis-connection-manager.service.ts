@@ -6,7 +6,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { REDIS_CLIENT } from 'src/constants/redis.constants';
-import { RedisClient } from './redis.provider';
+import { RedisClient } from './types/redis-client';
 
 @Injectable()
 export class RedisConnectionManager

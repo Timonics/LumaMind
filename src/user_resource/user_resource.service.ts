@@ -1,16 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResourceService } from 'src/resource/resource.service';
-import { UserService } from 'src/users/user.service';
 import { UserResource } from './interfaces/user_resource.interface';
 import { ProgressService } from 'src/progress/progress.service';
+import { UserRepository } from 'src/users/user.repository';
 
 @Injectable()
 export class UserResourceService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly resourceService: ResourceService,
-    private readonly userService: UserService,
+    private readonly userRepo: UserRepository,
     private readonly progressService: ProgressService,
   ) {}
 
@@ -19,7 +19,7 @@ export class UserResourceService {
     resourceId: number,
     notes?: string,
   ): Promise<UserResource> {
-    const user = await this.userService.findOne(userId);
+    const user = await this.userRepo.findOne(userId);
     if (!user) {
       throw new BadRequestException('User not found');
     }
